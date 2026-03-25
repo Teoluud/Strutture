@@ -19,6 +19,8 @@ class Calibration:
         self.err_x: np.ndarray  = np.zeros(len(self.x), dtype=np.float64) if y_column == 'pixel' else self.err
         self.err_y: np.ndarray  = np.zeros(len(self.y), dtype=np.float64) if x_column == 'pixel' else self.err
         self.npoints: int       = len(self.x)
+        # Initialize the Graph
+        self.graph = ROOT.TGraphErrors(self.npoints, self.x, self.y, self.err_x, self.err_y)
 
     def plot(self, title:str, xlabel: str, ylabel: str) -> None:
         """ Intializes graph and canvas.
@@ -51,11 +53,12 @@ class Calibration:
         self.e0 = self.fit_func.GetParError(0)
         self.p1 = self.fit_func.GetParameter(1) # Slope
         self.e1 = self.fit_func.GetParError(1)
+        self.cov_01 = fit_result.GetCovarianceMatrix()[0, 1]
         chi2 = self.fit_func.GetChisquare()
         ndf = self.fit_func.GetNDF()
         reduced_chi2 = chi2 / ndf if ndf > 0 else 0
         pvalue = self.fit_func.GetProb()
-        print(f"Fitted parameters: Intercept = {p0:.3f} ± {e0:.3f}, Slope = {p1:.3f} ± {e1:.3f}")
+        print(f"Fitted parameters: Intercept = {self.p0:.3f} ± {self.e0:.3f}, Slope = {self.p1:.3f} ± {self.e1:.3f}")
         print(f"Chi-squared: {chi2:.3f}")
         print(f"Degrees of freedom: {ndf}")
         print(f"Reduced Chi-squared: {reduced_chi2:.3f}")

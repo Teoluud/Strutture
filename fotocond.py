@@ -1,6 +1,6 @@
 from calibration import *
 
-class PhotoconductivityAnalysis:
+class PhotoconductivityAnalysis(DataAnalysis):
     """ Class that manages the analysis.
     """
     
@@ -23,6 +23,7 @@ class PhotoconductivityAnalysis:
         graph.SetTitle(f"{title};{xlabel};{ylabel}")
         graph.SetMarkerStyle(21)
         graph.SetMarkerColor(ROOT.kBlue + 2)
+        self.graphs.append(graph)
         return graph
     
     def make_simple_plot(self, x_col: str, y_col: str, title: str, xlabel: str, ylabel: str) -> ROOT.TGraph:
@@ -60,6 +61,13 @@ class PhotoconductivityAnalysis:
         self.df['err transmittance'] = self.df['transmittance'] * np.sqrt((self.df['err vpp fotod_sample']/self.df['vpp fotod_sample'])**2 +
                                                                           (self.df['err vpp fotod_ref']/self.df['vpp fotod_ref'])**2)
         self.df['deriv_transmittance'] = np.gradient(self.df['transmittance'], self.df['lambda'])
+        d_lambda = self.df['lambda'].shift(-1) - self.df['lambda'].shift(1)
+        d_trans = self.df['transmittance'].shift(-1) - self.df['transmittance'].shift(1)
+        et_prev = self.df['err transmittance'].shift(1)
+        et_next = self.df['err transmittance'].shift(-1)
+        el_prev = self.df['err lambda'].shift(1)
+        el_next = self.df['err lambda'].shift(-1)
+        self.df['err deriv_transmittance'] = 1 / d_lambda * np.sqrt(et_next**2 + et_prev**2 + (d_trans/d_lambda)**2 * (el_next**2 + el_prev**2))
         # Calculate photocurrent
         self.df['photocurrent'] = self.df['vpp fotoc'] / R * 1e6      # nA
         self.df['err photocurrent'] = self.df['photocurrent'] * np.sqrt((self.df['err vpp fotoc']/self.df['vpp fotoc'])**2 +
@@ -82,9 +90,9 @@ if __name__ == "__main__":
     ref_df      = read_file('reference.csv')
     merged_df   = pd.merge(data_df, ref_df, on='un arb', suffixes=('_sample','_ref'))
     # Calibration
-    spectrometer_cal = Calibration('lambda_pixel.csv', 'pixel', 'lambda')
+    spectrometer_cal = Calibration('lambda_pixel.csv', 'pixel', 'lambda', 'semi-ampiezza')
     spectrometer_cal.fit_linear()
-    monochromator_cal = Calibration('pixel_unarb.csv', 'un arb', 'pixel')
+    monochromator_cal = Calibration('pixel_unarb.csv', 'un arb', 'pixel', 'err un arb', 'semi-ampiezza')
     monochromator_cal.fit_linear()
     analysis = PhotoconductivityAnalysis(merged_df)
     analysis.calculate_physics_quantities(spec_cal=spectrometer_cal, mono_cal=monochromator_cal, R=R, ERR_R=ERR_R, ERR_U=ERR_U)
@@ -129,8 +137,9 @@ if __name__ == "__main__":
     g_ref = analysis.make_plot('lambda', 'vpp fotod_ref', 'err lambda', 'err vpp fotod_ref', 'Reference Spectrum', '#lambda [nm]', 'Vpp [mV]')
     analysis.display('c_ref', g_ref)
 
+    #g_d_trans = analysis.make_plot('lambda', 'deriv_transmittance', 'err lambda', 'err deriv_transmittance', 'Derivative', '#lambda [nm]', 'dT/d#lambda [nm^-1]')
     g_d_trans = analysis.make_simple_plot('lambda', 'deriv_transmittance', 'Derivative', '#lambda [nm]', 'dT/d#lambda [nm^-1]')
-    g_d_trans.Fit("gaus")
+    g_d_trans.Fit("gaus", "R", "", 620, 640)
     fit_func = g_d_trans.GetFunction("gaus")
     fit_func.SetNpx(1000)
     analysis.display('c_d_trans', g_d_trans)

@@ -1,23 +1,19 @@
-import pandas as pd
-import numpy as np
-import ROOT
 from utils import *
 
 class Calibration:
     """ Lambda - pixel conversion using PyROOT.
     """
 
-    def __init__(self, input_file: str, x_column: str, y_column: str) -> None:
+    def __init__(self, input_file: str, x_column: str, y_column: str, err_x_col: str = '', err_y_col: str = '') -> None:
         """ Constructor.
         """
         self.dataframe: pd.DataFrame = read_file(input_file)
         # ROOT expects double-precision floats (float64)
         self.x: np.ndarray      = self.dataframe[x_column].to_numpy(dtype=np.float64)
-        self.err: np.ndarray    = (self.dataframe['ampiezza'] / 2).to_numpy(dtype=np.float64)
         self.y: np.ndarray      = self.dataframe[y_column].to_numpy(dtype=np.float64)
         # ROOT needs an array for both errors even if they are zero
-        self.err_x: np.ndarray  = np.zeros(len(self.x), dtype=np.float64) if y_column == 'pixel' else self.err
-        self.err_y: np.ndarray  = np.zeros(len(self.y), dtype=np.float64) if x_column == 'pixel' else self.err
+        self.err_x: np.ndarray  = np.zeros(len(self.x), dtype=np.float64) if err_x_col == '' else self.dataframe[err_x_col].to_numpy(dtype=np.float64)
+        self.err_y: np.ndarray  = np.zeros(len(self.y), dtype=np.float64) if err_y_col == '' else self.dataframe[err_y_col].to_numpy(dtype=np.float64)
         self.npoints: int       = len(self.x)
         # Initialize the Graph
         self.graph = ROOT.TGraphErrors(self.npoints, self.x, self.y, self.err_x, self.err_y)
@@ -25,8 +21,6 @@ class Calibration:
     def plot(self, title:str, xlabel: str, ylabel: str) -> None:
         """ Intializes graph and canvas.
         """
-        # Initialize the Graph
-        self.graph = ROOT.TGraphErrors(self.npoints, self.x, self.y, self.err_x, self.err_y) 
         self.graph.SetTitle(f"{title};{xlabel};{ylabel}")
         self.graph.SetMarkerStyle(20) # Filled circle
         self.graph.SetMarkerSize(0.8)
@@ -90,12 +84,12 @@ class Calibration:
         input("Press Enter to exit and close the plot...")
 
 if __name__ == '__main__':
-    lambda_pixel = Calibration('lambda_pixel.csv', 'pixel', 'lambda')
+    lambda_pixel = Calibration('lambda_pixel.csv', 'pixel', 'lambda', 'semi-ampiezza')
     lambda_pixel.plot('Lambda - Pixel Calibration', 'Pixel', '#lambda [nm]')
     lambda_pixel.fit_linear()
     lambda_pixel.display('lambda_pixel_fit.pdf')
 
-    pixel_arb   = Calibration('pixel_unarb.csv', 'un arb', 'pixel')
+    pixel_arb   = Calibration('pixel_unarb.csv', 'un arb', 'pixel', 'err un arb', 'semi-ampiezza')
     pixel_arb.plot('Pixel - Arbitrary Unit Calibration', 'Arbitrary Unit', 'Pixel')
     pixel_arb.fit_linear()
     pixel_arb.display('pixel_unarb_fit.pdf')

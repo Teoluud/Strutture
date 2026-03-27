@@ -6,7 +6,7 @@ import ROOT
 def read_file(input_file: str) -> pd.DataFrame:
     """ Imports the CSV into a dataframe.
     """
-    df: pd.DataFrame = pd.read_csv(input_file)
+    df: pd.DataFrame = pd.read_csv(input_file, comment='#')
     return df
 
 class DataAnalysis:

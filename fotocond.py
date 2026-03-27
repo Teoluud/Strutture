@@ -4,10 +4,10 @@ class PhotoconductivityAnalysis(DataAnalysis):
     """ Class that manages the analysis.
     """
     
-    def __init__(self, df: pd.DataFrame) -> None:
+    def __init__(self, dataframe: pd.DataFrame) -> None:
         """ Constructor.
         """
-        DataAnalysis.__init__(self, df)
+        super().__init__(dataframe)
     
     def calculate_physics_quantities(self, spec_cal: Calibration, mono_cal: Calibration, R: float, ERR_R: float, ERR_U: float) -> None:
         """ Calculates quantities and their errors, adds them to df.
@@ -109,8 +109,6 @@ if __name__ == "__main__":
     fit_func = g_d_trans.GetFunction("gaus")
     fit_func.SetNpx(1000)
     analysis.display('c_d_trans', g_d_trans)
-
-    
     
 
     input("Press Enter to exit and close the plot...")

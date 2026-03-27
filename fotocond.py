@@ -7,36 +7,7 @@ class PhotoconductivityAnalysis(DataAnalysis):
     def __init__(self, df: pd.DataFrame) -> None:
         """ Constructor.
         """
-        self.df: pd.DataFrame = df
-        self.graphs = []
-
-    def make_plot(self, x_col:str, y_col: str, ex_col:str, ey_col: str, title: str, xlabel: str, ylabel: str) -> ROOT.TGraphErrors:
-        """ Creates the graph and returns it.
-        """
-        x: np.ndarray   = self.df[x_col].to_numpy(dtype=np.float64)
-        y: np.ndarray   = self.df[y_col].to_numpy(dtype=np.float64)
-        ex: np.ndarray  = self.df[ex_col].to_numpy(dtype=np.float64)
-        ey: np.ndarray  = self.df[ey_col].to_numpy(dtype=np.float64)
-        n: int          = len(x)
-        # Create the graph
-        graph: ROOT.TGraphErrors = ROOT.TGraphErrors(n, x, y, ex, ey)
-        graph.SetTitle(f"{title};{xlabel};{ylabel}")
-        graph.SetMarkerStyle(21)
-        graph.SetMarkerColor(ROOT.kBlue + 2)
-        self.graphs.append(graph)
-        return graph
-    
-    def make_simple_plot(self, x_col: str, y_col: str, title: str, xlabel: str, ylabel: str) -> ROOT.TGraph:
-        """ Creates a TGraph (without error bars).
-        """
-        x: np.ndarray   = self.df[x_col].to_numpy(dtype=np.float64)
-        y: np.ndarray   = self.df[y_col].to_numpy(dtype=np.float64)
-        n: int          = len(x)
-        graph: ROOT.TGraph = ROOT.TGraph(n, x, y)
-        graph.SetTitle(f"{title};{xlabel};{ylabel}")
-        graph.SetMarkerStyle(21)
-        graph.SetMarkerColor(ROOT.kBlue + 2)
-        return graph
+        DataAnalysis.__init__(self, df)
     
     def calculate_physics_quantities(self, spec_cal: Calibration, mono_cal: Calibration, R: float, ERR_R: float, ERR_U: float) -> None:
         """ Calculates quantities and their errors, adds them to df.
@@ -73,11 +44,6 @@ class PhotoconductivityAnalysis(DataAnalysis):
         self.df['err photocurrent'] = self.df['photocurrent'] * np.sqrt((self.df['err vpp fotoc']/self.df['vpp fotoc'])**2 +
                                                                         (ERR_R/R)**2)
         self.df['deriv_photocurrent'] = np.gradient(self.df['photocurrent'], self.df['lambda'])
-        
-    def display(self, canvas_name: str, graph: ROOT.TGraphErrors) -> None:
-        canvas = ROOT.TCanvas(canvas_name, canvas_name, 1000, 800)
-        canvas.cd()
-        graph.Draw("AP")
 
 
 if __name__ == "__main__":

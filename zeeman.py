@@ -32,11 +32,10 @@ class ZeemanAnalysis(DataAnalysis):
         p1_list = np.array(p1_list)
         e0_list = np.array(e0_list)
         e1_list = np.array(e1_list)
-        p0_cal: float = float(np.sum(p0_list/e0_list**2)/np.sum(1/e0_list**2))
-        e0_cal: float = np.sqrt(1 / np.sum(1/e0_list**2))
-        p1_cal: float = float(np.sum(p1_list/e1_list**2)/np.sum(1/e1_list**2))
-        e1_cal: float = np.sqrt(1 / np.sum(1/e1_list**2))
-        return p0_cal, p1_cal, e0_cal, e1_cal
+        # Calculate average
+        p0_ave, e0_ave = weighted_average(p0_list, e0_list)
+        p1_ave, e1_ave = weighted_average(p1_list, e1_list)
+        return p0_ave, p1_ave, e0_ave, e1_ave
 
     def calculate_physics_quantities(self, calibration_prefix: str) -> None:
         """ Calculates quantities and their errors, adds them to df.

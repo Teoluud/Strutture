@@ -9,6 +9,14 @@ def read_file(input_file: str) -> pd.DataFrame:
     df: pd.DataFrame = pd.read_csv(input_file, comment='#')
     return df
 
+def weighted_average(value: np.ndarray, sigma: np.ndarray) -> tuple[float, float]:
+    """ Returns average weighted with the inverse variance.
+    """
+    weight = 1/sigma**2
+    average = float(np.sum(value*weight) / np.sum(weight))
+    error = np.sqrt(1 / np.sum(weight))
+    return average, error
+
 class DataAnalysis:
     """ Class for generic data analysis methods.
     """

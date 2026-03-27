@@ -36,6 +36,7 @@ class ZeemanAnalysis(DataAnalysis):
         e0_cal: float = np.sqrt(1 / np.sum(1/e0_list**2))
         p1_cal: float = float(np.sum(p1_list/e1_list**2)/np.sum(1/e1_list**2))
         e1_cal: float = np.sqrt(1 / np.sum(1/e1_list**2))
+        # Calculate magnetic field
         err_b_pos: float        = 20.  # mT
         self.df['B(mT)']        = p0_cal + p1_cal * self.df['I(A)']
         self.df['err B(mT)']    = np.sqrt(e0_cal**2 + (self.df['I(A)']*e1_cal)**2 + 

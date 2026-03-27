@@ -9,8 +9,8 @@ class ZeemanAnalysis(DataAnalysis):
         """
         super().__init__(dataframe)
 
-    def calculate_physics_quantities(self, calibration_prefix: str) -> None:
-        """ Calculates quantities and their errors, adds them to df.
+    def calibration_average(self, calibration_prefix: str) -> tuple[float, float, float, float]:
+        """ Fits the 4 calibration datasets and returns the average.
         """
         p0_list = []
         p1_list = []
@@ -36,12 +36,18 @@ class ZeemanAnalysis(DataAnalysis):
         e0_cal: float = np.sqrt(1 / np.sum(1/e0_list**2))
         p1_cal: float = float(np.sum(p1_list/e1_list**2)/np.sum(1/e1_list**2))
         e1_cal: float = np.sqrt(1 / np.sum(1/e1_list**2))
+        return p0_cal, p1_cal, e0_cal, e1_cal
+
+    def calculate_physics_quantities(self, calibration_prefix: str) -> None:
+        """ Calculates quantities and their errors, adds them to df.
+        """
+        p0, p1, e0, e1 = self.calibration_average(calibration_prefix)
         # Calculate magnetic field
         err_b_pos: float        = 20.  # mT
-        self.df['B(mT)']        = p0_cal + p1_cal * self.df['I(A)']
-        self.df['err B(mT)']    = np.sqrt(e0_cal**2 + (self.df['I(A)']*e1_cal)**2 + 
+        self.df['B(mT)']        = p0 + p1 * self.df['I(A)']
+        self.df['err B(mT)']    = np.sqrt(e0**2 + (self.df['I(A)']*e1)**2 + 
                                           #2*self.df['I(A)']*e01_cal + 
-                                          (e1_cal*self.df['err I(A)'])**2) + err_b_pos    # mT
+                                          (e1*self.df['err I(A)'])**2) + err_b_pos    # mT
 
 
 if __name__ == '__main__':

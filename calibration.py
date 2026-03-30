@@ -60,7 +60,7 @@ class Calibration:
         # Tell ROOT to display the fit parameters in a stat box on the canvas
         ROOT.gStyle.SetOptFit(1111)
 
-    def display(self, save_path: str = "calibration_fit.pdf") -> None:
+    def display(self, save_path: str = "calibration_fit.pdf", keep_open: bool = False) -> None:
         """ Updates the canvas, saves it, and keeps the script alive to view it.
         """
         self.canvas.cd()
@@ -81,7 +81,8 @@ class Calibration:
         self.canvas.SaveAs(save_path)
         print(f"Plot successfully saved to {save_path}")
         # Keep the Python script from exiting immediately so you can see the window
-        input("Press Enter to exit and close the plot...")
+        if keep_open:
+            input("Press Enter to exit and close the plot...")
 
 if __name__ == '__main__':
     lambda_pixel = Calibration('lambda_pixel.csv', 'pixel', 'lambda', 'semi-ampiezza')

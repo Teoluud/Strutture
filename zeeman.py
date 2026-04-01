@@ -20,7 +20,7 @@ class ZeemanAnalysis(DataAnalysis):
         for i in range(1,5):
             cal_file: str = '%s_%i.csv' % (calibration_prefix, i)
             magnetic_cal = Calibration(cal_file, 'I(A)', 'B(mT)', 'err I(A)', 'err B(mT)')
-            magnetic_cal.fit_linear()           # CHANGE FITTING MODEL HERE! (if needed)
+            magnetic_cal.fit_linear(keep_open)           # CHANGE FITTING MODEL HERE! (if needed)
             magnetic_cal.plot(f'Calibrazione del magnete {i}', 'I [A]', 'B [mT]')
             magnetic_cal.display(('%s_%i.jpeg'%(calibration_prefix, i)), keep_open)
             p0_list.append(magnetic_cal.p0)
@@ -55,6 +55,12 @@ class ZeemanAnalysis(DataAnalysis):
                                           2*self.df['I(A)']*e01 + 
                                           (e1*self.df['err I(A)'])**2) + err_b_pos    # mT
 
+def configuration_full_analysis(input_file: str) -> None:
+    """ Goes through the whole analysis for a single configuration.
+    """
+    df = read_file(input_file)
+    analysis = ZeemanAnalysis(df)
+    pass
 
 if __name__ == '__main__':
     from optparse import OptionParser
@@ -62,18 +68,41 @@ if __name__ == '__main__':
     parser.add_option('-o', '--keep-open', action='store_true', dest='keep_open', default=False, help='Keeps the window open for every fit.')
 
     (opts, args) = parser.parse_args()
-    df = read_file('zeeman_data.csv')
-    analysis = ZeemanAnalysis(df)
-    analysis.calculate_physics_quantities('zeeman_calibration/zeeman_calibration', opts.keep_open)
-    graph = analysis.make_plot('B(mT)','y','err B(mT)', 'err y', 'Rapporto in funzione di B', 'B [mT]', '#frac{#delta}{#Delta}')
-    x_data = np.array(graph.GetX())
-    (p0, e0), (p1, e1), cov = fit_linear(graph, x_data, 1e-2, 0)
-    analysis.display("canvas", graph)
+    
     # Define variables
     REFRACTION_INDEX = 1.4560
     THICKNESS = 3e-3 # m
     PLANCK = 6.626e-34 # Js
     LIGHT_SPEED = 3e8   #m/s
-    mag_bohr = p1*1e3 * PLANCK * LIGHT_SPEED / (4*REFRACTION_INDEX*THICKNESS)
-    err_mag_bohr = PLANCK * LIGHT_SPEED / (4*REFRACTION_INDEX*THICKNESS) * e1*1e3
-    print(f'Prima stima magnetone di Bohr: ({mag_bohr:.3e} +/- {err_mag_bohr:.3e})J/T')
+    
+    df_long = read_file('zeeman_data_long.csv')
+    analysis_long = ZeemanAnalysis(df_long)
+    analysis_long.calculate_physics_quantities('zeeman_calibration/zeeman_calibration', opts.keep_open)
+    g_long = analysis_long.make_plot('B(mT)','y','err B(mT)', 'err y', 'Rapporto in funzione di B', 'B [mT]', '#frac{#delta}{#Delta}')
+    x_data = np.array(g_long.GetX())
+    (p0, e0), (p1, e1), cov = fit_linear(g_long, x_data, 1e-2, 0)
+    analysis_long.display("canvas_long", g_long)
+    mag_bohr = p1*1e3 * PLANCK * LIGHT_SPEED / (2*REFRACTION_INDEX*THICKNESS*2)
+    err_mag_bohr = PLANCK * LIGHT_SPEED / (2*REFRACTION_INDEX*THICKNESS*2) * e1*1e3
+    print(f'Magnetone di Bohr (geometria longitudinale): ({mag_bohr:.3e} +/- {err_mag_bohr:.3e})J/T')
+
+    #######################################################################
+    # TRASVERSAL GEOMETRY
+    #######################################################################
+    df_trans = read_file('zeeman_data_trasv.csv')
+    analysis_trans = ZeemanAnalysis(df_trans)
+    analysis_trans.calculate_physics_quantities('zeeman_calibration/zeeman_calibration', opts.keep_open)
+    
+    g_trans_pos = analysis_trans.make_plot('B(mT)', 'y+', 'err B(mT)', 'err y+', 'Rapporto in funzione di B per #Delta m_L = +1', 'B [mT]', '#frac{#delta}{#Delta}')
+    (p0, e0), (p1, e1), cov = fit_linear(g_trans_pos, np.array(g_trans_pos.GetX()), 1e-2, 0)
+    analysis_trans.display("canvas_trans_pos", g_trans_pos)
+    mag_bohr = p1*1e3 * PLANCK * LIGHT_SPEED / (2*REFRACTION_INDEX*THICKNESS)
+    err_mag_bohr = PLANCK * LIGHT_SPEED / (2*REFRACTION_INDEX*THICKNESS) * e1*1e3
+    print(f'Magnetone di Bohr (geometria trasversale, Delta m_L = +1): ({mag_bohr:.3e} +/- {err_mag_bohr:.3e})J/T')
+    
+    g_trans_neg = analysis_trans.make_plot('B(mT)', 'y-', 'err B(mT)', 'err y-', 'Rapporto in funzione di B per #Delta m_L = -1', 'B [mT]', '#frac{#delta}{#Delta}')
+    (p0, e0), (p1, e1), cov = fit_linear(g_trans_neg, np.array(g_trans_neg.GetX()), -1e-2, 0)
+    analysis_trans.display("canvas_trans_neg", g_trans_neg)
+    mag_bohr = p1*1e3 * PLANCK * LIGHT_SPEED / (2*REFRACTION_INDEX*THICKNESS*-1)
+    err_mag_bohr = abs(PLANCK * LIGHT_SPEED / (2*REFRACTION_INDEX*THICKNESS*-1) * e1*1e3)
+    print(f'Magnetone di Bohr (geometria trasversale, Delta m_L = -1): ({mag_bohr:.3e} +/- {err_mag_bohr:.3e})J/T')

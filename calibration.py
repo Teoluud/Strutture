@@ -31,7 +31,7 @@ class Calibration:
         self.canvas.cd()
         self.graph.Draw("AP")   # "A" draws axes, "P" draws markers
 
-    def fit_linear(self) -> None:
+    def fit_linear(self, keep_open: bool = False) -> None:
         """ Performs a linear fit using ROOT's Minuit fitter.
         """
         # Define a 1D linear function
@@ -41,7 +41,10 @@ class Calibration:
         self.fit_func.SetParameters(1.0, 1.0) 
         self.fit_func.SetLineColor(ROOT.kRed)
 
-        fit_result = self.graph.Fit(self.fit_func, "S")
+        if keep_open:
+            fit_result = self.graph.Fit(self.fit_func, "S")
+        else:
+            fit_result = self.graph.Fit(self.fit_func, "QS")
         # Extract parameters
         self.p0 = self.fit_func.GetParameter(0) # Intercept
         self.e0 = self.fit_func.GetParError(0)
@@ -52,7 +55,7 @@ class Calibration:
         ndf = self.fit_func.GetNDF()
         reduced_chi2 = chi2 / ndf if ndf > 0 else 0
         pvalue = self.fit_func.GetProb()
-        print(f"Fitted parameters: Intercept = {self.p0:.3f} ± {self.e0:.3f}, Slope = {self.p1:.3f} ± {self.e1:.3f}")
+        print(f"Fitted parameters: Intercept = {self.p0:.3e} ± {self.e0:.3e}, Slope = {self.p1:.3e} ± {self.e1:.3e}")
         print(f"Chi-squared: {chi2:.3f}")
         print(f"Degrees of freedom: {ndf}")
         print(f"Reduced Chi-squared: {reduced_chi2:.3f}")

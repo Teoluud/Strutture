@@ -84,10 +84,10 @@ if __name__ == '__main__':
     analysis_long.calculate_physics_quantities('zeeman_calibration/zeeman_calibration', opts.keep_open)
     g_long = analysis_long.make_plot('B(mT)','y','err B(mT)', 'err y', 'Rapporto in funzione di B', 'B [mT]', '#frac{#delta}{#Delta}')
     x_data = np.array(g_long.GetX())
-    (p0, e0), (p1, e1), cov = fit_linear(g_long, x_data, 1e-2, 0)
+    fit_long: FitParameterStruct = fit_linear(g_long, x_data, 1e-2, 0)
     analysis_long.display("canvas_long", g_long)
-    mag_bohr = p1*1e3 * PLANCK * LIGHT_SPEED / (2*REFRACTION_INDEX*THICKNESS*2)
-    err_mag_bohr = PLANCK * LIGHT_SPEED / (2*REFRACTION_INDEX*THICKNESS*2) * e1*1e3
+    mag_bohr = fit_long.parameters[1]*1e3 * PLANCK * LIGHT_SPEED / (2*REFRACTION_INDEX*THICKNESS*2)
+    err_mag_bohr = PLANCK * LIGHT_SPEED / (2*REFRACTION_INDEX*THICKNESS*2) * fit_long.par_errors[1]*1e3
     print(f'Magnetone di Bohr (geometria longitudinale): ({mag_bohr:.3e} +/- {err_mag_bohr:.3e})J/T')
 
     #######################################################################
@@ -98,15 +98,15 @@ if __name__ == '__main__':
     analysis_trans.calculate_physics_quantities('zeeman_calibration/zeeman_calibration', opts.keep_open)
     
     g_trans_pos = analysis_trans.make_plot('B(mT)', 'y+', 'err B(mT)', 'err y+', 'Rapporto in funzione di B per #Delta m_L = +1', 'B [mT]', '#frac{#delta}{#Delta}')
-    (p0, e0), (p1, e1), cov = fit_linear(g_trans_pos, np.array(g_trans_pos.GetX()), 1e-2, 0)
+    fit_trans_pos: FitParameterStruct = fit_linear(g_trans_pos, np.array(g_trans_pos.GetX()), 1e-2, 0)
     analysis_trans.display("canvas_trans_pos", g_trans_pos)
-    mag_bohr = p1*1e3 * PLANCK * LIGHT_SPEED / (2*REFRACTION_INDEX*THICKNESS)
-    err_mag_bohr = PLANCK * LIGHT_SPEED / (2*REFRACTION_INDEX*THICKNESS) * e1*1e3
+    mag_bohr = fit_trans_pos.parameters[1]*1e3 * PLANCK * LIGHT_SPEED / (2*REFRACTION_INDEX*THICKNESS)
+    err_mag_bohr = PLANCK * LIGHT_SPEED / (2*REFRACTION_INDEX*THICKNESS) * fit_trans_pos.par_errors[1]*1e3
     print(f'Magnetone di Bohr (geometria trasversale, Delta m_L = +1): ({mag_bohr:.3e} +/- {err_mag_bohr:.3e})J/T')
     
     g_trans_neg = analysis_trans.make_plot('B(mT)', 'y-', 'err B(mT)', 'err y-', 'Rapporto in funzione di B per #Delta m_L = -1', 'B [mT]', '#frac{#delta}{#Delta}')
-    (p0, e0), (p1, e1), cov = fit_linear(g_trans_neg, np.array(g_trans_neg.GetX()), -1e-2, 0)
+    fit_trans_neg: FitParameterStruct = fit_linear(g_trans_neg, np.array(g_trans_neg.GetX()), -1e-2, 0)
     analysis_trans.display("canvas_trans_neg", g_trans_neg)
-    mag_bohr = p1*1e3 * PLANCK * LIGHT_SPEED / (2*REFRACTION_INDEX*THICKNESS*-1)
-    err_mag_bohr = abs(PLANCK * LIGHT_SPEED / (2*REFRACTION_INDEX*THICKNESS*-1) * e1*1e3)
+    mag_bohr = fit_trans_neg.parameters[1]*1e3 * PLANCK * LIGHT_SPEED / (2*REFRACTION_INDEX*THICKNESS*-1)
+    err_mag_bohr = abs(PLANCK * LIGHT_SPEED / (2*REFRACTION_INDEX*THICKNESS*-1) * fit_trans_neg.par_errors[1]*1e3)
     print(f'Magnetone di Bohr (geometria trasversale, Delta m_L = -1): ({mag_bohr:.3e} +/- {err_mag_bohr:.3e})J/T')

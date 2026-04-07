@@ -9,7 +9,20 @@ def read_file(input_file: str) -> pd.DataFrame:
     df: pd.DataFrame = pd.read_csv(input_file, comment='#')
     return df
 
-def fit_linear(graph, x: np.ndarray, param0=1.0, param1=1.0) -> tuple[tuple[float, float], tuple[float, float], float]:
+
+class FitParameterStruct:
+     """ Class that works like a struct for fit parameters.
+     """
+
+     def __init__(self, parameter_list: list, par_errors_list: list = [], covariance_list: list = []) -> None:
+          """ Constructor.
+          """
+          self.parameters = parameter_list
+          self.par_errors = par_errors_list
+          self.covariance = covariance_list
+
+
+def fit_linear(graph, x: np.ndarray, param0=1.0, param1=1.0) -> FitParameterStruct:
         """ Performs a linear fit using ROOT's Minuit fitter.
         """
         # Define a 1D linear function
@@ -26,6 +39,7 @@ def fit_linear(graph, x: np.ndarray, param0=1.0, param1=1.0) -> tuple[tuple[floa
         p1 = fit_func.GetParameter(1) # Slope
         e1 = fit_func.GetParError(1)
         cov_01 = fit_result.GetCovarianceMatrix()[0, 1]
+        fit_struct = FitParameterStruct([p0, p1], [e0, e1], [cov_01])
         chi2 = fit_func.GetChisquare()
         ndf = fit_func.GetNDF()
         reduced_chi2 = chi2 / ndf if ndf > 0 else 0
@@ -37,7 +51,7 @@ def fit_linear(graph, x: np.ndarray, param0=1.0, param1=1.0) -> tuple[tuple[floa
         print(F"P-value: {pvalue:.3f}")
         # Tell ROOT to display the fit parameters in a stat box on the canvas
         ROOT.gStyle.SetOptFit(1111)
-        return (p0, e0), (p1, e1), cov_01
+        return fit_struct
 
 def weighted_average(value: np.ndarray, sigma: np.ndarray) -> tuple[float, float]:
     """ Returns average weighted with the inverse variance.

@@ -27,7 +27,7 @@ class ZeemanAnalysis(DataAnalysis):
             p1_list.append(magnetic_cal.p1)
             e0_list.append(magnetic_cal.e0)
             e1_list.append(magnetic_cal.e1)
-            cov_list.append(magnetic_cal.cov_01)       # Think about propagating covariance
+            cov_list.append(magnetic_cal.cov_01)
         # Convert lists to np.array
         p0_list = np.array(p0_list)
         p1_list = np.array(p1_list)
@@ -37,11 +37,12 @@ class ZeemanAnalysis(DataAnalysis):
         # Calculate average
         p0_ave, e0_ave = weighted_average(p0_list, e0_list)
         p1_ave, e1_ave = weighted_average(p1_list, e1_list)
+        # Calculate covariance, using its linearity and the indipendence between datasets
         weight0 = 1/e0_list**2
         weight1 = 1/e1_list**2
         weight_tot_0 = np.sum(weight0)
         weight_tot_1 = np.sum(weight1)
-        cov01 = float(1/(weight_tot_0*weight_tot_1) * np.sum(weight0*weight1*cov_list))        
+        cov01 = float(1/(weight_tot_0*weight_tot_1) * np.sum(weight0*weight1*cov_list))
         return (p0_ave, e0_ave), (p1_ave, e1_ave), cov01
 
     def calculate_physics_quantities(self, calibration_prefix: str, keep_open: bool) -> None:
@@ -60,7 +61,7 @@ def configuration_full_analysis(input_file: str) -> None:
     """
     df = read_file(input_file)
     analysis = ZeemanAnalysis(df)
-    pass
+    pass        # Still needs to be implemented (kind of complicated to keep track of the differences in configurations)
 
 if __name__ == '__main__':
     from optparse import OptionParser
@@ -71,10 +72,13 @@ if __name__ == '__main__':
     
     # Define variables
     REFRACTION_INDEX = 1.4560
-    THICKNESS = 3e-3 # m
-    PLANCK = 6.626e-34 # Js
-    LIGHT_SPEED = 3e8   #m/s
-    
+    THICKNESS = 3e-3    # m
+    PLANCK = 6.626e-34  # J*s
+    LIGHT_SPEED = 3e8   # m/s
+
+    #######################################################################
+    # LONGITUDINAL GEOMETRY
+    #######################################################################
     df_long = read_file('zeeman_data_long.csv')
     analysis_long = ZeemanAnalysis(df_long)
     analysis_long.calculate_physics_quantities('zeeman_calibration/zeeman_calibration', opts.keep_open)

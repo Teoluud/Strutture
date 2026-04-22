@@ -45,6 +45,12 @@ class PhotoconductivityAnalysis(DataAnalysis):
                                                                         (ERR_R/R)**2)
         self.df['deriv_photocurrent'] = np.gradient(self.df['photocurrent'], self.df['lambda'])
 
+        self.df['absorbtion'] = self.df['vpp fotoc'] / self.df['vpp fotod_ref']
+        self.df['err absorbtion'] = self.df['absorbtion'] * np.sqrt((self.df['err vpp fotoc']/self.df['vpp fotoc'])**2 +
+                                                                          (self.df['err vpp fotod_ref']/self.df['vpp fotod_ref'])**2)
+        self.df['deriv_absorbtion'] = np.gradient(self.df['absorbtion'], self.df['lambda'])
+
+
 
 if __name__ == "__main__":
 
@@ -58,8 +64,12 @@ if __name__ == "__main__":
     # Calibration
     spectrometer_cal = Calibration('lambda_pixel.csv', 'pixel', 'lambda', 'semi-ampiezza')
     spectrometer_cal.fit_linear()
+    spectrometer_cal.plot('Calibrazione lambda - pixel', 'pixel', '#lambda [nm]')
+    spectrometer_cal.display("spectrometer_cal.png")
     monochromator_cal = Calibration('pixel_unarb.csv', 'un arb', 'pixel', 'err un arb', 'semi-ampiezza')
     monochromator_cal.fit_linear()
+    monochromator_cal.plot('Calibrazione pixel - un arbitrarie', 'un arbitrarie', 'pixel')
+    monochromator_cal.display("monochromator_cal.png")
     analysis = PhotoconductivityAnalysis(merged_df)
     analysis.calculate_physics_quantities(spec_cal=spectrometer_cal, mono_cal=monochromator_cal, R=R, ERR_R=ERR_R, ERR_U=ERR_U)
     # Create canvas
@@ -73,8 +83,9 @@ if __name__ == "__main__":
     pad1.SetRightMargin(0.15)
     pad1.Draw()
     pad1.cd()
+
     # Draw transmittance plot
-    g_trans = analysis.make_plot('lambda', 'transmittance', 'err lambda', 'err transmittance', '', '#lambda [nm]', 'transmittance')
+    g_trans = analysis.make_plot('lambda', 'transmittance', 'err lambda', 'err transmittance', '', '#lambda [nm]', 'trasmittanza')
     g_trans.Draw("AP")
     # Create overlapping transparent pad
     pad2 = ROOT.TPad("pad2", "pad2", 0, 0, 1, 1)
@@ -85,30 +96,48 @@ if __name__ == "__main__":
     pad2.Range(xmin, ymin, xmax, ymax)
     pad2.Draw()
     pad2.cd()
+
     # Draw photocurrent plot
-    g_phot = analysis.make_plot('lambda', 'photocurrent', 'err lambda', 'err photocurrent', 'Transmittance and Photocurrent', '#lambda [nm]', 'I [nA]')
+    g_phot = analysis.make_plot('lambda', 'absorbtion', 'err lambda', 'err absorbtion', 'Trasmittanza e Coefficiente di Assorbimento', '#lambda [nm]', 'coefficiente di assorbimento')
     g_phot.SetMarkerColor(ROOT.kRed + 1)
     g_phot.SetMarkerStyle(20)
     g_phot.GetXaxis().SetLabelSize(0)
     g_phot.GetXaxis().SetTickLength(0)
     g_phot.GetYaxis().SetTitleOffset(1.0)
+    sig_phot = ROOT.TF1('sig_phot', '([0]/(1+ TMath::Exp(-[1]*(x-[2]))))', 620, 680)
+    sig_phot.SetParameters(0.45, -0.5, 630)
+    g_phot.Fit(sig_phot, "R")
     g_phot.Draw("APY+")
+
     # Draw legend
     legend = ROOT.TLegend(0.2, 0.7, 0.4, 0.8)
-    legend.AddEntry(g_trans, "Transmittance", "ple")
-    legend.AddEntry(g_phot, "Photocurrent", "ple")
+    legend.AddEntry(g_trans, "Trasmittanza", "ple")
+    legend.AddEntry(g_phot, "Coefficiente di Assorbimento", "ple")
     legend.SetBorderSize(0)
     legend.Draw()
 
-    g_ref = analysis.make_plot('lambda', 'vpp fotod_ref', 'err lambda', 'err vpp fotod_ref', 'Reference Spectrum', '#lambda [nm]', 'Vpp [mV]')
+    g_ref = analysis.make_plot('lambda', 'vpp fotod_ref', 'err lambda', 'err vpp fotod_ref', 'Spettro di Riferimento', '#lambda [nm]', 'Vpp [mV]')
     analysis.display('c_ref', g_ref)
 
-    #g_d_trans = analysis.make_plot('lambda', 'deriv_transmittance', 'err lambda', 'err deriv_transmittance', 'Derivative', '#lambda [nm]', 'dT/d#lambda [nm^-1]')
-    g_d_trans = analysis.make_simple_plot('lambda', 'deriv_transmittance', 'Derivative', '#lambda [nm]', 'dT/d#lambda [nm^-1]')
-    g_d_trans.Fit("gaus", "R", "", 620, 640)
+    g_d_trans = analysis.make_plot('lambda', 'deriv_transmittance', 'err lambda', '', 'Derivata della Trasmittanza', '#lambda [nm]', 'dT/d#lambda [nm^-1]')
+    #g_d_trans = analysis.make_simple_plot('lambda', 'deriv_transmittance', 'Derivata della Trasmittanza', '#lambda [nm]', 'dT/d#lambda [nm^-1]')
+    g_d_trans.Fit("gaus", "R", "", 620, 635)
     fit_func = g_d_trans.GetFunction("gaus")
     fit_func.SetNpx(1000)
     analysis.display('c_d_trans', g_d_trans)
     
+    g_d_phot = analysis.make_plot('lambda', 'deriv_absorbtion', 'err lambda', '', 'Derivata del Coefficiente di Assorbimento', '#lambda [nm]', 'd#mu/#lambda [nm^-1]')
+    # g_d_trans.Fit('gaus', 'R', '', 620, 635)
+    # d_phot_fit_func = g_d_phot.GetFunction('gaus')
+    # d_phot_fit_func.SetNpx(1000)
+    analysis.display('c_d_phot', g_d_phot)
+    
+    #######################################################################
+    # FINAL RESULT
+    #######################################################################
+    hc = 1240. # eV * nm
 
-    input("Press Enter to exit and close the plot...")
+    energy_gap, err_energy_gap = weighted_average(np.array([hc/629., hc/629.]), np.array([hc/629**2*3., hc/629**2*11.]))
+    print(f'!!!!!!!!!!!!!!!!!!!!!!!!! Energy gap: ({energy_gap} +/- {err_energy_gap}) eV')
+
+    # analysis.df.to_csv("fotocond_data.csv")
